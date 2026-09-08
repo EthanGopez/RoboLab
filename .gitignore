@@ -19,6 +19,20 @@ debug/*
 !debug/container_hulls/
 !debug/container_hulls/**
 docker-cache/
+.cache/
+
+# Mobile-extension datasets are distributed separately. Keep vendor scans,
+# generated conversions, and nested reference repositories out of Git.
+assets/scenes/xgrids2_lab/new_data_0827/
+assets/scenes/xgrids2_lab/forward_compatible/
+assets/scenes/xgrids2_lab/mesh-files/
+assets/scenes/xgrids2_lab/ply-result/
+assets/scenes/xgrids2_lab/usd-result/
+assets/scenes/xgrids2_lab/xgrids2_lab_zup.usda
+assets/third_party/
+cobot_moma_isaacsim/
+mujoco_cobot/
+robot_handoff_2026-07-30/
 
 # Documentation
 docs/superpowers/

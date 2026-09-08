@@ -39,9 +39,10 @@ END_EFFECTOR_LINK_NAME = "robotiq_85_base_link"
 _WRIST_CAM = TiledCameraCfg(
     # Keep the camera on bracelet_link so it follows the physical Kinova mount.
     prim_path="{ENV_REGEX_NS}/robot/bracelet_link/wrist_cam",
+    update_latest_camera_pose=True,
     height=720,
     width=1280,
-    data_types=["rgb"],
+    data_types=["rgb", "distance_to_image_plane"],
     spawn=sim_utils.PinholeCameraCfg(
         # Match the 1280x720 intrinsics packaged with the Kinova description.
         focal_length=3.895,

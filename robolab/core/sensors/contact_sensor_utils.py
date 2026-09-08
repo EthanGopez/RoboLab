@@ -75,15 +75,33 @@ def create_contact_sensors(env_cfg):
             contact_sensor = create_contact_sensor_cfg(gripper_prim_path, getattr(scene, obj_name).prim_path)
             setattr(scene, contact_sensor_name, contact_sensor)
 
+    def reports_contacts(entity_cfg) -> bool:
+        """Whether the spawned entity is configured with contact-report API."""
+
+        spawn = getattr(entity_cfg, "spawn", None)
+        return bool(getattr(spawn, "activate_contact_sensors", False))
+
     objects = env_cfg.contact_object_list
     for i in range(len(objects)):
         for j in range(i + 1, len(objects)):
             obj_name = objects[i]
             other_obj_name = objects[j]
+            obj_cfg = getattr(scene, obj_name)
+            other_obj_cfg = getattr(scene, other_obj_name)
+            # A ContactSensor's monitored prim must be a rigid body carrying
+            # PhysxContactReportAPI. Static collision-only fixtures may still
+            # be filters, but cannot be the monitored side. Skip static-static
+            # pairs and reverse a pair when only its second entity reports.
+            if not reports_contacts(obj_cfg):
+                if reports_contacts(other_obj_cfg):
+                    obj_name, other_obj_name = other_obj_name, obj_name
+                    obj_cfg, other_obj_cfg = other_obj_cfg, obj_cfg
+                else:
+                    continue
             contact_sensor_name = f"{obj_name}__{other_obj_name}"
             contact_sensor = create_contact_sensor_cfg(
-                getattr(scene, obj_name).prim_path,
-                getattr(scene, other_obj_name).prim_path)
+                obj_cfg.prim_path,
+                other_obj_cfg.prim_path)
             setattr(scene, contact_sensor_name, contact_sensor)
 
 def get_contact_sensors(scene):

@@ -106,6 +106,17 @@ def _assign(obj, key: str, value) -> None:
         setattr(obj, key, value)
 
 
+def _contains_callable(value) -> bool:
+    """Return whether a plain container contains a live callable."""
+    if callable(value):
+        return True
+    if isinstance(value, dict):
+        return any(_contains_callable(item) for item in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(_contains_callable(item) for item in value)
+    return False
+
+
 def _overlay(obj, data: dict, ns: str, skipped: list[str]) -> None:
     """Recursively write recorded values onto ``obj``, collecting mismatches in ``skipped``."""
     for key, value in data.items():
@@ -139,6 +150,13 @@ def _overlay(obj, data: dict, ns: str, skipped: list[str]) -> None:
             continue
 
         if isinstance(value, list):
+            # json.dump(default=str) serializes functools.partial values inside
+            # subtask condition sequences as non-importable repr strings. Keep
+            # the freshly built config's live callables instead of replacing
+            # those sequences with lossy JSON values.
+            if _contains_callable(target):
+                skipped.append(f"{key_ns} (contains live callables; keeping current config values)")
+                continue
             if any(isinstance(element, dict) for element in value):
                 if isinstance(target, (list, tuple)) and len(target) == len(value):
                     for i, element in enumerate(value):

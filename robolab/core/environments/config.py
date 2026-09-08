@@ -132,6 +132,15 @@ def generate_task_env_cfg(task_class: Task,
             self.sim.dt: int = dt
             self.sim.render_interval: int = render_interval
 
+            # Contact-rich tasks may need stricter solver limits than the
+            # lightweight RoboLab defaults. Keep this task-scoped so a
+            # manipulation benchmark does not silently change every existing
+            # environment's performance profile.
+            for name, value in getattr(task_class, "sim_physx_overrides", {}).items():
+                if not hasattr(self.sim.physx, name):
+                    raise AttributeError(f"Unknown PhysX task override: {name}")
+                setattr(self.sim.physx, name, value)
+
             # Can be overwritten during parse_env_cfg
             self.seed: int = seed
             self.num_envs: int = num_envs

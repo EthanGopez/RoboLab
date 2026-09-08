@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<!--
+  Planner-only Kinova Gen3 model.
+
+  Joint origins are copied from the handoff robot description used to build
+  kinova_mobile_cobot.usda.  Rendering, mass, transmissions, the mobile base,
+  and cameras intentionally stay in the USD; CuRobo only needs this fixed-base
+  kinematic chain.  The tool_frame is RoboLab's measured fingertip midpoint.
+-->
+<robot name="kinova_gen3_robolab_planner">
+  <link name="base_link"/>
+  <link name="shoulder_link"/>
+  <joint name="joint_1" type="revolute">
+    <origin rpy="3.1416 2.7629e-18 -4.9305e-36" xyz="0 0 0.15643"/>
+    <parent link="base_link"/><child link="shoulder_link"/>
+    <axis xyz="0 0 1"/><limit effort="39" lower="-6.283185" upper="6.283185" velocity="1.3963"/>
+  </joint>
+
+  <link name="half_arm_1_link"/>
+  <joint name="joint_2" type="revolute">
+    <origin rpy="1.5708 2.1343e-17 -1.1102e-16" xyz="0 0.005375 -0.12838"/>
+    <parent link="shoulder_link"/><child link="half_arm_1_link"/>
+    <axis xyz="0 0 1"/><limit effort="39" lower="-2.24" upper="2.24" velocity="1.3963"/>
+  </joint>
+
+  <link name="half_arm_2_link"/>
+  <joint name="joint_3" type="revolute">
+    <origin rpy="-1.5708 1.2326e-32 -2.9122e-16" xyz="0 -0.21038 -0.006375"/>
+    <parent link="half_arm_1_link"/><child link="half_arm_2_link"/>
+    <axis xyz="0 0 1"/><limit effort="39" lower="-6.283185" upper="6.283185" velocity="1.3963"/>
+  </joint>
+
+  <link name="forearm_link"/>
+  <joint name="joint_4" type="revolute">
+    <origin rpy="1.5708 -6.6954e-17 -1.6653e-16" xyz="0 0.006375 -0.21038"/>
+    <parent link="half_arm_2_link"/><child link="forearm_link"/>
+    <axis xyz="0 0 1"/><limit effort="39" lower="-2.57" upper="2.57" velocity="1.3963"/>
+  </joint>
+
+  <link name="spherical_wrist_1_link"/>
+  <joint name="joint_5" type="revolute">
+    <origin rpy="-1.5708 2.2204e-16 -6.373e-17" xyz="0 -0.20843 -0.006375"/>
+    <parent link="forearm_link"/><child link="spherical_wrist_1_link"/>
+    <axis xyz="0 0 1"/><limit effort="9" lower="-6.283185" upper="6.283185" velocity="1.2218"/>
+  </joint>
+
+  <link name="spherical_wrist_2_link"/>
+  <joint name="joint_6" type="revolute">
+    <origin rpy="1.5708 9.2076e-28 -8.2157e-15" xyz="0 0.00017505 -0.10593"/>
+    <parent link="spherical_wrist_1_link"/><child link="spherical_wrist_2_link"/>
+    <axis xyz="0 0 1"/><limit effort="9" lower="-2.09" upper="2.09" velocity="1.2218"/>
+  </joint>
+
+  <link name="bracelet_link"/>
+  <joint name="joint_7" type="revolute">
+    <origin rpy="-1.5708 -5.5511e-17 9.6396e-17" xyz="0 -0.10593 -0.00017505"/>
+    <parent link="spherical_wrist_2_link"/><child link="bracelet_link"/>
+    <axis xyz="0 0 1"/><limit effort="9" lower="-6.283185" upper="6.283185" velocity="1.2218"/>
+  </joint>
+
+  <link name="robotiq_85_base_link"/>
+  <joint name="end_effector" type="fixed">
+    <origin rpy="3.14159265358979 1.09937075168372e-32 0" xyz="0 0 -0.061525"/>
+    <parent link="bracelet_link"/><child link="robotiq_85_base_link"/>
+  </joint>
+
+  <link name="tool_frame"/>
+  <joint name="tool_frame_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.1429"/>
+    <parent link="robotiq_85_base_link"/><child link="tool_frame"/>
+  </joint>
+</robot>

@@ -17,6 +17,14 @@
 - **Multi-Environment Parallel Evaluation**: Run multiple episodes in parallel across environments with vectorized conditionals and per-environment termination.
 - **Results Dashboard with Episode Videos and Cross-Experiment Analysis**: A self-contained web [dashboard](docs/dashboard.md) for browsing scenes/tasks, replaying episode videos, and comparing results across experiments.
 
+## Mobile-manipulation extension
+
+The `mobile-extension` branch adds a simplified dynamically driven planar CoBot
+with a Kinova Gen3 arm, room-scale Nucleus4D scenarios, CuRobo reference
+controllers, and passive trajectory-level evaluation. See the
+**[mobile-extension README](docs/MOBILE_EXTENSION_README.md)** for asset setup,
+commands, benchmark scope, validation, and current limitations.
+
 ## Getting Started
 
 Requires [uv](https://docs.astral.sh/uv/getting-started/installation/) and a system `ffmpeg` (used for video recording). The IsaacSim/IsaacLab stack is selected at install time via a mutually-exclusive extra — `isaac50` (IsaacSim 5.0 / IsaacLab 2.2.0, default) or `isaac51` (IsaacSim 5.1 / IsaacLab 2.3.2.post1). See [Requirements](#requirements) for hardware.

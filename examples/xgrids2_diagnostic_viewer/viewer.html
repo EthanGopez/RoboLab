@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Can transfer · motion lab</title><style>__STYLE__</style></head>
+<body>
+<header><div><span class="eyebrow">XGRIDS / STANDALONE DIAGNOSTIC</span><h1>One can. One continuous trace.</h1></div><span class="pill">Recorded physics · 30 Hz · seed 0</span></header>
+<main>
+<section class="left">
+  <div id="video-crop"><video id="video" src="__VIDEO__" preload="auto" playsinline aria-label="Synchronized three-camera task recording"></video></div>
+  <div class="controls"><button id="play">Play</button><button id="back" title="Previous frame">−1 frame</button><button id="forward" title="Next frame">+1 frame</button><output id="clock">0:00 / 2:13</output><label>Speed <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label></div>
+  <input id="scrub" type="range" min="0" value="0" aria-label="Video timeline">
+  <div id="media-error" role="alert" hidden>Video could not load. Keep this HTML beside its evidence folder, or serve the evidence directory over HTTP.</div>
+  <section class="now"><div class="eyebrow">AT THIS INSTANT <span id="sample"></span></div><h2 id="status"></h2><div id="facts"></div><p id="context-note"></p><div id="active-warning" hidden></div></section>
+  <details id="event-list"><summary>Event navigator <span class="muted">· click to inspect; includes future events</span></summary><div id="events"></div></details>
+  <details id="episode-summary"><summary>Episode report <span class="muted">· final results, not live values</span></summary><div id="report"></div><p class="muted">Perception uses privileged state. Assisted retention does not test slip/drop resistance. Whole-body collisions and reference path efficiency are not instrumented. Navigation to the source was not tested: the robot started there. A successful task is not a claim of jerk-free motion.</p></details>
+</section>
+<section class="right">
+  <div class="plot-controls"><label>Plots <select id="mode"><option value="auto">Follow the activity</option><option value="arm">Arm motion</option><option value="navigation">Base motion</option><option value="grasp">Contact & lift</option><option value="placement">Placement</option></select></label><label>History <select id="window"><option value="5">5 s</option><option value="10" selected>10 s</option><option value="20">20 s</option></select></label><label id="joint-control">Joint <select id="joint"></select></label></div>
+  <p class="muted small" id="plot-note">Past samples only · fixed scales · click a plot to seek</p>
+  <article class="plot"><h3 id="title-a"></h3><div id="legend-a" class="legend"></div><canvas id="plot-a" aria-label="First synchronized motion plot"></canvas></article>
+  <article class="plot"><h3 id="title-b"></h3><div id="legend-b" class="legend"></div><canvas id="plot-b" aria-label="Second synchronized motion plot"></canvas></article>
+  <details id="advanced"><summary>Jerk diagnostics <span class="muted">· advanced</span></summary><p class="small muted">Peak absolute arm jerk across joints. Dashed lines are advisory thresholds, not task-failure limits. They are not validated perceptual smoothness thresholds.</p><article class="plot"><h3>Arm jerk · rad/s³</h3><div id="legend-c" class="legend"></div><canvas id="plot-c" aria-label="Arm jerk diagnostics"></canvas></article></details>
+  <p class="small muted">Display context is inferred from measured motion and outcomes—not the oracle’s phase labels. All signals were recorded continuously. Display selection never changes scoring.</p>
+</section>
+</main>
+<footer>Local prototype · no RoboLab integration · original recording and evaluation files unchanged</footer>
+<script id="viewer-data" type="application/json">__DATA__</script><script>__SCRIPT__</script>
+</body></html>

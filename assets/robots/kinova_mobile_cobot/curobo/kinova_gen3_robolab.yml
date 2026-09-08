@@ -1,0 +1,58 @@
+robot_cfg:
+  kinematics:
+    urdf_path: kinova_gen3_robolab.urdf
+    asset_root_path: .
+    base_link: base_link
+    ee_link: tool_frame
+    collision_link_names:
+      - base_link
+      - shoulder_link
+      - half_arm_1_link
+      - half_arm_2_link
+      - forearm_link
+      - spherical_wrist_1_link
+      - spherical_wrist_2_link
+      - bracelet_link
+      - robotiq_85_base_link
+      - tool_frame
+      - attached_object
+    collision_spheres: kinova_gen3_robolab_spheres.yml
+    collision_sphere_buffer: 0.004
+    extra_collision_spheres: {attached_object: 32}
+    extra_links:
+      attached_object:
+        parent_link_name: tool_frame
+        link_name: attached_object
+        fixed_transform: [0, 0, 0, 1, 0, 0, 0]
+        joint_type: FIXED
+        joint_name: attach_joint
+    self_collision_ignore:
+      base_link: [shoulder_link]
+      shoulder_link: [half_arm_1_link]
+      half_arm_1_link: [half_arm_2_link]
+      half_arm_2_link: [forearm_link]
+      forearm_link: [spherical_wrist_1_link]
+      spherical_wrist_1_link: [spherical_wrist_2_link]
+      spherical_wrist_2_link: [bracelet_link]
+      bracelet_link: [robotiq_85_base_link, tool_frame, attached_object]
+      robotiq_85_base_link: [tool_frame, attached_object]
+      tool_frame: [attached_object]
+    self_collision_buffer:
+      base_link: 0.0
+      shoulder_link: 0.0
+      half_arm_1_link: 0.0
+      half_arm_2_link: 0.0
+      forearm_link: 0.0
+      spherical_wrist_1_link: 0.0
+      spherical_wrist_2_link: 0.0
+      bracelet_link: 0.0
+      robotiq_85_base_link: 0.0
+      tool_frame: 0.0
+      attached_object: 0.0
+    cspace:
+      joint_names: [joint_1, joint_2, joint_3, joint_4, joint_5, joint_6, joint_7]
+      retract_config: [2.4244626, 0.1725207, 3.9796526, -1.0094391, 0.3149961, -0.3811611, 1.5699596]
+      null_space_weight: [1, 1, 1, 1, 1, 1, 1]
+      cspace_distance_weight: [1, 1, 1, 1, 1, 1, 1]
+      max_acceleration: 4.0
+      max_jerk: 50.0

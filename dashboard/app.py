@@ -81,7 +81,7 @@ def _event_severity(name: str) -> str:
     u = (name or "").upper()
     if u.endswith("_SUCCESS") or u == "OK":
         return "success"
-    if u.endswith("_FAILURE"):
+    if u.endswith(("_FAILURE", "_REGRESSION")):
         return "failure"
     if "DROPPED" in u or "WRONG" in u or "HIT" in u:
         return "failure"
@@ -428,6 +428,8 @@ def create_app(initial_dir: Path | None = None, scenes_dir: Path | None = None) 
                     "name": ev.get("name") or "",
                     "info": ev.get("info") or "",
                     "score": ev.get("score"),
+                    "predicate": ev.get("predicate"),
+                    "value": ev.get("value"),
                     "severity": _event_severity(ev.get("name") or ""),
                 })
         elif isinstance(data, list):
@@ -451,7 +453,8 @@ def create_app(initial_dir: Path | None = None, scenes_dir: Path | None = None) 
                 })
                 prev = status
 
-        return {"dt": dt, "num_events": len(events), "events": events}
+        return {"dt": dt, "num_events": len(events), "events": events,
+                "evaluation": data.get("evaluation") if isinstance(data, dict) else None}
 
     @app.get("/api/runs/{run_id}/tasks/{task}/episodes/{env_id}/run/{run_index}/timeseries")
     def episode_timeseries_route(run_id: str, task: str, env_id: int, run_index: int):
