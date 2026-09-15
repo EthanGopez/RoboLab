@@ -195,7 +195,7 @@ class XGRIDS2ScenarioSpec:
     pour: XGRIDS2PourSpec | None = None
     episode_length_s: int = 300
     limitations: tuple[str, ...] = (
-        "contact_verified_temporary_fixed_joint_retention",
+        "development_scenario_not_yet_migrated_to_unassisted_manipulation",
     )
     metadata: dict[str, str] = field(default_factory=dict)
 
@@ -231,7 +231,10 @@ SINK = XGRIDS2SupportSpec(
 DINING_BASE_POSE = (1.7656, -1.7639, 0.13335, 2.29876)
 TOP_GRASP_DINING_BASE_POSE = (1.30, -1.45, 0.13335, 2.1587989303)
 TOP_GRASP_DEPARTURE_POSE = (1.45, -1.60, 0.13335, 2.1587989303)
-SNACK_BASE_POSE = (4.48, -1.14, 0.13335, 0.3487710036)
+# Face the can placement region from the validated snack-table staging point.
+# The prior positive yaw was stale and made the passive navigation predicate
+# disagree with the controller even when the base reached its target exactly.
+SNACK_BASE_POSE = (4.48, -1.14, 0.13335, -0.5162306706)
 TOP_GRASP_SNACK_BASE_POSE = (4.58, -1.31, 0.13335, -0.3655101930)
 CUBE_SNACK_BASE_POSE = (4.56, -1.29, 0.13335, -0.3655101930)
 SINK_BASE_POSE = (-1.7888, 1.5441, 0.13335, 2.3216464567)
@@ -284,7 +287,7 @@ BOTTLE_GRASP = XGRIDS2GraspSpec(
 
 CAN = XGRIDS2ObjectSpec(
     "can",
-    "assets/objects/ycb/tomato_soup_can_physics.usda",
+    "assets/objects/ycb/tomato_soup_can.usd",
     (0.067854, 0.067750, 0.102037),
     0.45,
     (1.23, 1.27, -1.20, -1.17),
@@ -910,7 +913,8 @@ def xgrids2_scenario_manifest_entry(scenario: XGRIDS2ScenarioSpec) -> dict:
         "spawned_physics_assets": physics_assets,
     }
     payload["retention_mode"] = (
-        "measured_fingertip_contact_then_temporary_fixed_joint"
+        "forbidden" if scenario.name == "can_dining_to_snack"
+        else "development_only_not_benchmark_eligible"
     )
     payload["pouring_fidelity"] = (
         "pose_level_pour_no_fluid" if scenario.pour is not None else None

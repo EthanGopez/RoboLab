@@ -153,11 +153,14 @@ def test_clutter_and_pour_contracts_are_explicit():
     assert "pose_level_pour_no_fluid" in pouring.limitations
 
 
-def test_manifest_entries_are_json_safe_and_disclose_assists():
+def test_manifest_entries_are_json_safe_and_disclose_benchmark_eligibility():
     entry = xgrids2_scenario_manifest_entry(
         get_xgrids2_scenario("mustard_pour_into_bowl")
     )
-    assert entry["retention_mode"].startswith("measured_fingertip_contact")
+    assert entry["retention_mode"] == "development_only_not_benchmark_eligible"
+    assert xgrids2_scenario_manifest_entry(
+        get_xgrids2_scenario("can_dining_to_snack")
+    )["retention_mode"] == "forbidden"
     assert entry["pouring_fidelity"] == "pose_level_pour_no_fluid"
     assert isinstance(entry["objects"], tuple)
     provenance = entry["asset_provenance"]

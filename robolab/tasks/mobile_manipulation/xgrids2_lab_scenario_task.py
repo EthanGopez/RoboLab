@@ -52,6 +52,10 @@ def scenario_grasp_joint_name(object_name: str) -> str:
 
 
 def _physics_object_cfg(spec: XGRIDS2ObjectSpec) -> RigidObjectCfg:
+    preserve_authored_contact = (
+        spec.name == "can"
+        and spec.usd_relative == "assets/objects/ycb/tomato_soup_can.usd"
+    )
     return RigidObjectCfg(
         prim_path=f"{{ENV_REGEX_NS}}/{spec.name}",
         spawn=sim_utils.UsdFileCfg(
@@ -71,13 +75,25 @@ def _physics_object_cfg(spec: XGRIDS2ObjectSpec) -> RigidObjectCfg:
                 sleep_threshold=0.004,
                 stabilization_threshold=0.001,
             ),
-            mass_props=sim_utils.MassPropertiesCfg(mass=spec.mass_kg),
-            collision_props=sim_utils.CollisionPropertiesCfg(
-                collision_enabled=True,
-                contact_offset=0.003,
-                rest_offset=0.0,
-                torsional_patch_radius=0.02,
-                min_torsional_patch_radius=0.005,
+            # The benchmark can is an existing RoboLab object whose collision,
+            # mass and contact properties were validated as authored. Generic
+            # overrides remain available for development assets that have not
+            # yet been migrated to the unassisted benchmark.
+            mass_props=(
+                None
+                if preserve_authored_contact
+                else sim_utils.MassPropertiesCfg(mass=spec.mass_kg)
+            ),
+            collision_props=(
+                None
+                if preserve_authored_contact
+                else sim_utils.CollisionPropertiesCfg(
+                    collision_enabled=True,
+                    contact_offset=0.003,
+                    rest_offset=0.0,
+                    torsional_patch_radius=0.02,
+                    min_torsional_patch_radius=0.005,
+                )
             ),
             activate_contact_sensors=True,
         ),

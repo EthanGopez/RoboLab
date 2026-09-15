@@ -29,7 +29,7 @@ cd RoboLab
 git switch mobile-extension
 uv venv --python 3.11
 source .venv/bin/activate
-uv sync --extra isaac51
+uv sync --extra isaac51 --extra xgrids2
 ```
 
 The upstream `isaac50` environment remains supported by RoboLab, but the
@@ -59,9 +59,15 @@ assets/third_party/ebench/assets/scene_usds/ebench/long_horizon/
   scene_dishwasher/scene.usd
 ```
 
+Validate the external setup before launching Isaac:
+
+```bash
+python examples/check_xgrids2_setup.py --verify-checksum
+```
+
 ## Run an XGrids2 scenario
 
-List the available scenario choices:
+The only benchmark-eligible scenario currently is the unassisted can transfer:
 
 ```bash
 python examples/validate_xgrids2_lab_scenario.py --help
@@ -91,7 +97,9 @@ output/xgrids2_lab/benchmark_pack/<scenario>/
 ```
 
 Use `--output-dir` for diagnostic trials so accepted evidence is not replaced.
-The former can and plate commands remain as thin compatibility launchers.
+The other four scenario records are retained for development but are blocked
+from benchmark execution until their fixed-joint retention paths are replaced
+and physically validated.
 
 ## Evaluation outputs
 
@@ -143,8 +151,10 @@ See [XGRIDS2_CODEBASE_GUIDE.md](XGRIDS2_CODEBASE_GUIDE.md) for code ownership an
 ## Current limitations
 
 - The base abstracts wheels and drivetrain mechanics; it is not a mecanum model.
-- Fixed-joint retention is an explicitly reported post-contact assist in current
-  XGrids2 demonstrations. It cannot validate natural grasp or drop resistance.
+- Benchmark execution forbids fixed-joint retention. The current can task uses
+  physical gripper contact for grasp, lift, transport, and release.
+- Plate, multi-object, clutter, and pouring configurations are development-only
+  until each has an unassisted manipulation implementation.
 - The pouring scenario is a pose-level baseline with no simulated liquid.
 - Whole-body collision counting and perception success are not yet fully
   instrumented; unavailable metrics are reported as such rather than as zero.

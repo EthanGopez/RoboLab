@@ -39,8 +39,7 @@ def advance(evaluator, sample, count=1):
 def complete_leg(evaluator, sample, leg):
     obj = sample["objects"][leg.object_name]
     obj["fingertip_forces_n"] = [2, 2]
-    obj["retention_active"] = True
-    advance(evaluator, sample)
+    advance(evaluator, sample, 3)
     obj["position_xyz"][2] += .3
     advance(evaluator, sample)
     obj["position_xyz"] = [*leg.place.center_xy, 1.1]
@@ -69,12 +68,12 @@ def test_complete_episode_and_maintained_placement_regression():
     assert ev.summary()["metrics"]["predicate_recoveries"] == 1
 
 
-def test_no_contact_no_assisted_grasp_and_unknown_is_not_zero():
+def test_no_contact_no_grasped_and_unknown_is_not_zero():
     ev, sample = PassiveTransferEvaluator(SCENARIO, dt=.1), snapshot()
     sample["objects"]["can"]["retention_active"] = True
     advance(ev, sample)
     result = ev.summary()
-    assert not result["predicates"]["can_transfer/assisted_grasp"]
+    assert not result["predicates"]["can_transfer/grasped"]
     assert result["handoffs"]["grasp_to_transport"]["rate"] is None
     assert result["metrics"]["collision_count"] is None
     assert result["metrics"]["unassisted_drop_rate"] is None
@@ -167,7 +166,7 @@ def test_dashboard_export_loader_and_time_alignment(tmp_path, monkeypatch):
     assert "passive-evaluation.js" in client.get("/").text
 
 
-def test_settling_rejects_fast_motion_and_attached_objects():
+def test_settling_rejects_fast_motion_and_retention_activation():
     ev, sample = PassiveTransferEvaluator(SCENARIO, dt=.1), snapshot()
     leg = SCENARIO.legs[0]
     complete_leg(ev, sample, leg)
@@ -181,16 +180,15 @@ def test_settling_rejects_fast_motion_and_attached_objects():
     assert not ev.states["can_transfer/placed"]
 
 
-def test_stale_contact_cannot_certify_retention():
+def test_stale_contact_cannot_certify_grasp():
     ev, sample = PassiveTransferEvaluator(SCENARIO, dt=.1), snapshot()
     sample["objects"]["can"]["fingertip_forces_n"] = [3, 3]
     advance(ev, sample)
     sample["objects"]["can"]["fingertip_forces_n"] = [0, 0]
     advance(ev, sample, 5)
-    sample["objects"]["can"]["retention_active"] = True
     advance(ev, sample)
     assert ev.states["can_transfer/contact_verified"]
-    assert not ev.states["can_transfer/assisted_grasp"]
+    assert not ev.states["can_transfer/grasped"]
 
 
 def test_dashboard_playback_does_not_reveal_future_achievements():
@@ -208,15 +206,15 @@ vm.createContext(context);
 vm.runInContext(fs.readFileSync(process.argv[1], 'utf8'), context);
 const host = element(), callbacks = {};
 const video = {currentTime: 0, addEventListener(k, f) {callbacks[k] = f;}};
-const evaluation = {predicates: {'can/assisted_grasp': true}, metrics: {}, validity: {}};
-const events = [{time_s: 5, predicate: 'can/assisted_grasp', value: true}];
+const evaluation = {predicates: {'can/grasped': true}, metrics: {}, validity: {}};
+const events = [{time_s: 5, predicate: 'can/grasped', value: true}];
 context.renderPassiveEvaluation(host, evaluation, events, [video]);
 const panel = host.children[0].children[2];
-assert(panel.textContent.includes('pending: Grasp established (assisted)'));
+assert(panel.textContent.includes('pending: Physical grasp established'));
 video.currentTime = 6; callbacks.seeked();
-assert(panel.textContent.includes('✓ Grasp established (assisted)'));
+assert(panel.textContent.includes('✓ Physical grasp established'));
 video.currentTime = 1; callbacks.seeked();
-assert(panel.textContent.includes('pending: Grasp established (assisted)'));
+assert(panel.textContent.includes('pending: Physical grasp established'));
 '''
     subprocess.run(["node", "-e", js, str(script)], check=True)
 

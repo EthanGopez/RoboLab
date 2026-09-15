@@ -81,8 +81,8 @@ def test_can_initial_source_not_navigation_success_and_warning_is_not_failure():
     assert 'already at source; not tested' in ' '.join(can_diagnostic_lines(row))
     assert summary['progress'] == 0
     # A diagnostic warning must not break a later predicate achievement.
-    sample['tick'] = 6
     sample['objects']['can']['fingertip_forces_n'] = [5,5]
-    sample['objects']['can']['retention_active'] = True
-    evaluator.observe(sample)
-    assert evaluator.summary()['predicates'][f'{leg.name}/assisted_grasp']
+    for _ in range(8):
+        sample['tick'] = evaluator.tick + 1
+        evaluator.observe(sample)
+    assert evaluator.summary()['predicates'][f'{leg.name}/grasped']

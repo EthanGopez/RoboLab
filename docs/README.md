@@ -1,5 +1,14 @@
 # RoboLab Documentation
 
+## Mobile manipulation extension
+
+- [Setup and runner](MOBILE_EXTENSION_README.md)
+- [Current XGrids2 benchmark contract](XGRIDS2_BENCHMARK.md)
+- [Code map](XGRIDS2_CODEBASE_GUIDE.md)
+- [Scene coordinate alignment](XGRIDS2_LABAPT_ALIGNMENT.md)
+- [Physics layer](XGRIDS2_LAB_PHYSICS_WALKTHROUGH.md)
+- [Passive evaluation](XGRIDS2_PASSIVE_EVALUATION.md)
+
 ## How RoboLab Works
 
 RoboLab dynamically combines **tasks** with user-specified **robot**, **observations**, **actions**, and **simulation parameters** at environment registration time.

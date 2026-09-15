@@ -30,6 +30,8 @@ with a Kinova Gen3 arm, room-scale Nucleus4D scenarios, CuRobo reference
 controllers, and passive trajectory-level evaluation. See the
 **[mobile-extension README](docs/MOBILE_EXTENSION_README.md)** for asset setup,
 commands, benchmark scope, validation, and current limitations.
+The current scored scope and migration status are summarized in
+**[XGrids2 benchmark contract](docs/XGRIDS2_BENCHMARK.md)**.
 
 See the [Ecosystem](docs/ecosystem.md) page for projects built on RoboLab.
 

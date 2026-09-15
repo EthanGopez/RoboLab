@@ -60,7 +60,7 @@ def build_payload(directory):
             obs = row["observation"]
             base, motion, obj = obs["base"], obs["motion"], obs["objects"]["can"]
             pred = lambda name: bool(row["predicates"].get(f"{leg['name']}/{name}", False))
-            held = obj["retention_active"]
+            held = pred("grasped") and not pred("placed")
             speed = math.hypot(*base["linear_velocity_xyz"][:2])
             commanded_speed = math.hypot(*base["command_velocity_body"][:2])
             moving = (max(speed, commanded_speed) > (.005 if moving else .015)
@@ -90,9 +90,11 @@ def build_payload(directory):
                 path=row["base_path_length_m"], release_clearance=row.get("release_clearance_m"))
             for key, value in values.items():
                 columns[key].append(value)
+            if obj["retention_active"]:
+                raise ValueError("benchmark trace contains forbidden fixed-joint retention")
             if held != previous_held:
-                events.append({"time": i*dt, "label": "Retention ON (assisted)" if held else "Retention released",
-                               "kind": "retention", "detail": "Measured retention-joint state transition"})
+                events.append({"time": i*dt, "label": "Physical grasp observed" if held else "Physical release observed",
+                               "kind": "grasp", "detail": "Derived from passive contact and task predicates"})
             previous_held = held
     n = len(columns["time"])
     if n == 0 or n != rec["written_video_frames"]:
@@ -103,7 +105,7 @@ def build_payload(directory):
     for i, frame in enumerate(frame_map):
         if frame["frame"] != i or frame["evaluation_tick"] != i+1 or abs(frame["video_time_s"]-i*dt) > 1e-7:
             raise ValueError("Frame map does not match post-step trace")
-    labels = {"contact_verified": "Finger contact observed", "assisted_grasp": "Assisted grasp established",
+    labels = {"contact_verified": "Finger contact observed", "grasped": "Physical grasp established",
               "lifted": "Can cleared dining table", "navigation_destination_reached": "Base reached snack-table goal",
               "transported": "Can over snack table", "placed": "Released and settled at target"}
     for event in json.loads((directory / "evaluation_events.json").read_text()):

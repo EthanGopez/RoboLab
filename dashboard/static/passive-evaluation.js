@@ -7,7 +7,7 @@ function renderPassiveEvaluation(host, evaluation, events, videos) {
   heading.textContent = 'Passive capability / handoff diagnosis';
   section.appendChild(heading);
   const validity = document.createElement('p');
-  validity.textContent = 'Privileged oracle · fixed-joint retention assist · grasp robustness and whole-body collision count not scored';
+  validity.textContent = 'Privileged oracle · unassisted physical grasp · fixed-joint retention forbidden · whole-body collision count not scored';
   section.appendChild(validity);
   const current = document.createElement('pre');
   current.style.cssText = 'white-space:pre-wrap;font-size:12px';
@@ -45,14 +45,14 @@ function renderPassiveEvaluation(host, evaluation, events, videos) {
     const lines = [Number.isFinite(t) ? `Playback ${t.toFixed(1)} s` : 'Final observed state (no video)'];
     for (const leg of legs) {
       const has = p => !!state[`${leg}/${p}`];
-      const labels = {contact_verified: 'Fingers contacted object', assisted_grasp: 'Grasp established (assisted)',
+      const labels = {contact_verified: 'Fingers contacted object', grasped: 'Physical grasp established',
         lifted: 'Object cleared source', transported: 'Object over destination', placed: 'Released and settled at target'};
       lines.push(`${leg.replaceAll('_', ' ')}:  ` + Object.keys(labels)
         .map(p => `${has(p) ? '✓' : 'pending:'} ${labels[p]}`).join('  |  '));
       const handoff = (a, b) => has(a) ? (has(b) ? 'observed success' : 'awaiting downstream outcome') : 'not observed';
       const initialSource = (evaluation.initial_source_goals || []).includes(leg);
-      lines.push(`  Navigation → grasp: ${initialSource ? 'already at source; navigation not tested' : handoff('navigation_source_reached', 'assisted_grasp')}`);
-      lines.push(`  grasp → transport: ${handoff('assisted_grasp', 'transported')}`);
+      lines.push(`  Navigation → grasp: ${initialSource ? 'already at source; navigation not tested' : handoff('navigation_source_reached', 'grasped')}`);
+      lines.push(`  grasp → transport: ${handoff('grasped', 'transported')}`);
       lines.push(`  transport → place: ${handoff('transported', 'placed')}`);
     }
     lines.push('Perception: not evaluated | interaction-pose feasibility: not instrumented');

@@ -1,6 +1,6 @@
 # XGrids2 code map
 
-The configurable scenario runner is the single maintained entry point:
+The configurable scenario runner is the single maintained benchmark entry point:
 
 ```bash
 python examples/validate_xgrids2_lab_scenario.py \
@@ -11,6 +11,10 @@ Use `--record-video --video-fps 30 --capture-every 1` for synchronized
 control-rate evidence. The runner owns environment creation, oracle execution,
 passive evaluation, recording, and the benchmark manifest.
 
+Only `can_dining_to_snack` is currently benchmark-eligible. The other scenario
+records are retained for unassisted migration and cannot be run through the
+benchmark entry point.
+
 ## Maintained modules
 
 | Responsibility | File |
@@ -20,6 +24,7 @@ passive evaluation, recording, and the benchmark manifest.
 | Scenario execution and artifact lifecycle | `xgrids2_runner.py` |
 | Scenario strategy selection | `xgrids2_lab_scenario_oracle.py` |
 | Validated can controller | `xgrids2_lab_curobo_oracle.py` |
+| Unassisted can behavior and hard retention gate | `xgrids2_unassisted_can_oracle.py` |
 | Validated plate controller | `xgrids2_lab_plate_to_sink_curobo_oracle.py` |
 | Passive task evaluator | `xgrids2_passive_evaluation.py` |
 | Simulator snapshot adapter | `xgrids2_evaluation_observer.py` |
@@ -33,17 +38,14 @@ advance the controller.
 ## Public scripts
 
 - `validate_xgrids2_lab_scenario.py`: run any registered scenario.
-- `validate_xgrids2_lab_manipulation.py`: compatibility launcher for the can.
-- `validate_xgrids2_lab_plate_to_sink.py`: compatibility launcher for the plate.
+- `check_xgrids2_setup.py`: validate the external scene and pinned CuRobo runtime.
 - `audit_xgrids2_evaluation.py`: replay and verify passive-evaluation output.
 - `audit_xgrids2_recording.py`: fully decode and verify synchronized video.
 - `build_xgrids2_diagnostic_viewer.py`: build the offline HTML report.
 - `export_xgrids2_can_video_variants.py`: make the two shareable can videos.
 
-The remaining `diagnose_`, `visualize_`, `register_`, and specialized
-`validate_` programs are maintenance tools for asset alignment, rendering,
-physics gates, reachability, and robustness. They are not alternative benchmark
-runners.
+Older compatibility, `diagnose_`, `visualize_`, `register_`, and specialized
+`validate_` programs are development tools, not alternative benchmark runners.
 
 ## Cleanup rules
 

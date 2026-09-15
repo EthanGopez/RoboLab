@@ -60,6 +60,9 @@ isaac51 = [
     "isaaclab==2.3.2.post1",
     "isaacsim[all,extscache]==5.1.0",
 ]
+xgrids2 = [
+    "nvidia-curobo @ git+https://github.com/NVlabs/curobo.git@ebb71702f3f70e767f40fd8e050674af0288abe8",
+]
 analysis = ["sbi"]
 test = ["pytest"]
 all = ["sbi", "pytest"]

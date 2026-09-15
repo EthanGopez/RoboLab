@@ -172,6 +172,8 @@ class XGRIDS2CuroboResult:
     carry_posture_radius_m: float = 0.0
     place_target: list[float] = field(default_factory=list)
     place_target_error_m: float = 0.0
+    grasp_mode: str = "bilateral_contact_then_fixed_joint_retention"
+    release_mode: str = "constraint_release_then_planned_retreat"
 
     def as_dict(self) -> dict:
         return {
@@ -179,9 +181,9 @@ class XGRIDS2CuroboResult:
             "requested_stage": self.requested_stage,
             "completed_stage": self.completed_stage,
             "execution_mode": "curobo_time_parameterized_continuous_position_tracking",
-            "grasp_mode": "bilateral_contact_then_fixed_joint_retention",
+            "grasp_mode": self.grasp_mode,
             "transport_mode": "closed_loop_holonomic_inflated_astar_route",
-            "release_mode": "constraint_release_then_planned_retreat",
+            "release_mode": self.release_mode,
             "carry_route_radius_m": CARRY_ROUTE_RADIUS_M,
             "carry_planning_radius_m": CARRY_PLANNING_RADIUS_M,
             "failure_reason": self.failure_reason,
@@ -230,6 +232,7 @@ class XGRIDS2CuroboOracle:
         self.can = env.scene[object_name]
         self.device = env.device
         self.num_seeds = num_seeds
+        self.place_release_clearance_m = PLACE_RELEASE_CLEARANCE_M
         self._stage_label = "idle"
         self.arm_indices = [
             self.robot.data.joint_names.index(name) for name in ARM_JOINT_NAMES
@@ -1338,7 +1341,11 @@ class XGRIDS2CuroboOracle:
                     closed=True,
                 ))
             place_tool = self._tool_pose_for_can(
-                (place_xy[0], place_xy[1], place_z + PLACE_RELEASE_CLEARANCE_M),
+                (
+                    place_xy[0],
+                    place_xy[1],
+                    place_z + self.place_release_clearance_m,
+                ),
                 held_pose,
                 tool_quaternion_wxyz=PLACE_GRASP_QUAT_WXYZ,
             )

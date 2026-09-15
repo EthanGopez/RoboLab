@@ -1688,7 +1688,10 @@ class XGRIDS2ScenarioOracle:
     def run(self, *, stage: str = "full"):
         if self.scenario.name == "can_dining_to_snack":
             from robolab.tasks.mobile_manipulation.xgrids2_can_diagnostic import CanDiagnosticProfile
-            self.backend = XGRIDS2CuroboOracle(
+            from robolab.tasks.mobile_manipulation.xgrids2_unassisted_can_oracle import (
+                XGRIDS2UnassistedCanOracle,
+            )
+            self.backend = XGRIDS2UnassistedCanOracle(
                 self.env, num_seeds=min(self.num_seeds, 8),
                 diagnostic_profile=CanDiagnosticProfile() if self.execution_profile == "can_diagnostic" else None,
             )

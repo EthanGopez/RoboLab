@@ -49,6 +49,12 @@ def run_xgrids2_scenario(
     torch.manual_seed(args_cli.seed)
     np.random.seed(args_cli.seed)
     scenario = get_xgrids2_scenario(args_cli.scenario)
+    if scenario.name != "can_dining_to_snack":
+        raise ValueError(
+            f"{scenario.name} is retained as a development scenario but has not "
+            "been migrated to unassisted manipulation; benchmark execution is "
+            "currently limited to can_dining_to_snack"
+        )
     env_cfg_class, env_name = register_xgrids2_scenario(scenario.name)
     env_cfg = env_cfg_class()
     env_cfg.seed = args_cli.seed
@@ -218,7 +224,7 @@ def run_xgrids2_scenario(
                         f"PROGRESS {100 * evaluation_row['progress']:.0f}% | "
                         f"BASE PATH {evaluation_row['base_path_length_m']:.2f}m",
                         " | ".join(f"{name} {100*value:.0f}%" for name, value in evaluation_row["groups"].items()),
-                        f"RETENTION ASSIST: {','.join(held) or 'OFF'} | "
+                        f"FIXED-JOINT RETENTION: {'INVALID ' + ','.join(held) if held else 'OFF'} | "
                         "collisions: uninstrumented | perception: privileged oracle",
                     ]
                     for line_index, text in enumerate(lines):
@@ -288,6 +294,17 @@ def run_xgrids2_scenario(
             and oracle.backend.grasp_joint.GetJointEnabledAttr().Get()
         )
         result_payload["retention_active_end"] = retention_active_end
+        if oracle.backend is not None and hasattr(oracle.backend, "grasp_audit"):
+            grasp_audit = oracle.backend.grasp_audit.summary()
+            result_payload["grasp_audit"] = grasp_audit
+            result_payload["retention_ever_active"] = bool(
+                grasp_audit["retention_ever_active"]
+            )
+            if result_payload["retention_ever_active"]:
+                result_payload["passed"] = False
+                result_payload["failure_reason"] = (
+                    "fixed-joint retention activated during benchmark execution"
+                )
         if "released_objects" not in result_payload:
             result_payload["released_objects"] = (
                 [item.name for item in scenario.objects if item.manipulated]

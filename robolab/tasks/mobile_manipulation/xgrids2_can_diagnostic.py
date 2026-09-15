@@ -104,12 +104,12 @@ def can_diagnostic_lines(row, *, camera_cut=False):
     obj = row["observation"]["objects"]["can"]
     geo = row["placement"][leg]
     quality = row.get("quality_diagnostics", {})
-    outcomes = [("Contact", "contact_verified"), ("Grasp (assisted)", "assisted_grasp"),
+    outcomes = [("Contact", "contact_verified"), ("Physical grasp", "grasped"),
                 ("Lift clearance", "lifted"), ("Over snack table", "transported"),
                 ("Released + settled", "placed")]
     outcome_line = " | ".join(f"{label}: {'YES' if has(key) else 'pending'}" for label, key in outcomes)
     handoff = lambda a, b: "success" if has(a) and has(b) else "pending" if has(a) else "not reached"
-    nav = "already at source; not tested" if row.get("source_initially_reached") else "goal not reached" if not has("navigation_source_reached") else handoff("navigation_source_reached", "assisted_grasp")
+    nav = "already at source; not tested" if row.get("source_initially_reached") else "goal not reached" if not has("navigation_source_reached") else handoff("navigation_source_reached", "grasped")
     status = "PLACED SUCCESSFULLY" if row["task_success"] else "IN PROGRESS"
     release = row.get("release_clearance_m")
     release_text = "not released yet" if release is None else f"{100*release:.1f} cm above table"
@@ -121,8 +121,8 @@ def can_diagnostic_lines(row, *, camera_cut=False):
     return [
         f"CAN: dining table -> snack table | {status} | sim {row['sim_time_s']:.1f}s | base path {row['base_path_length_m']:.2f}m | 1x playback",
         outcome_line,
-        f"Nav -> grasp: {nav} | Grasp -> transport: {handoff('assisted_grasp', 'transported')} | Transport -> place: {handoff('transported', 'placed')}",
-        f"Release: {release_text} | Placement XY error: {error_text} | Retention assist: {'ON' if obj['retention_active'] else 'OFF'}",
+        f"Nav -> grasp: {nav} | Grasp -> transport: {handoff('grasped', 'transported')} | Transport -> place: {handoff('transported', 'placed')}",
+        f"Release: {release_text} | Placement XY error: {error_text} | Fixed-joint retention: {'INVALID' if obj['retention_active'] else 'OFF'}",
         f"Advisory alerts: arm motion {counts.get('arm_jerk_rad_s3', 0)}, arm command {counts.get('arm_target_jerk_rad_s3', 0)}, base turning {counts.get('base_yaw_acceleration_rad_s2', 0)} | Now: {active_text}" + (" | CAMERA CUT" if camera_cut else ""),
-        "Not scored: perception (oracle), grasp/slip robustness (assist), collisions (uninstrumented), path efficiency (no reference).",
+        "Not scored: perception (oracle), whole-body collisions (uninstrumented), path efficiency (no reference).",
     ]

@@ -70,7 +70,7 @@ class PassiveTransferEvaluator:
     Feasible interaction poses and perception are unknown without instrumentation.
     """
 
-    GROUPS = {"Grasp": ("contact_verified", "assisted_grasp"),
+    GROUPS = {"Grasp": ("contact_verified", "grasped"),
               "Lift": ("lifted",), "Transport": ("transported",),
               "Place": ("placed",)}
 
@@ -85,6 +85,7 @@ class PassiveTransferEvaluator:
         self.states = {}
         self.first = {}
         self.last_contact = {}
+        self.contact_duration = {}
         self.settling = {}
         self.previous = None
         self.latest = None
@@ -97,6 +98,7 @@ class PassiveTransferEvaluator:
         self.repositionings = {leg.name: 0 for leg in scenario.legs}
         self.last_nav_inside = {}
         self.completion_first_s = None
+        self.retention_ever_active = False
         self.initial_source_goals = set()
         self.quality_monitor = None
         if scenario.name == "can_dining_to_snack":
@@ -157,10 +159,21 @@ class PassiveTransferEvaluator:
                 if contact:
                     self.last_contact[name] = t
                     self._set(f"{leg.name}/contact_verified", True, historical=True)
+                self.contact_duration[name] = (
+                    self.contact_duration.get(name, 0.0) + self.dt if contact else 0.0
+                )
             retained = obj["retention_active"]
+            self.retention_ever_active |= bool(retained)
             recent_contact = t-self.last_contact.get(name, -1e10) <= self.thresholds.contact_memory_s
-            self._set(f"{leg.name}/assisted_grasp", retained and recent_contact, historical=True)
-            lifted = retained and self._achieved(leg, "assisted_grasp") and geo["bottom_z"] >= source.surface_z+self.thresholds.lift_clearance_m
+            self._set(
+                f"{leg.name}/grasped",
+                self.contact_duration.get(name, 0.0) + 1.0e-9
+                >= self.thresholds.contact_memory_s
+                and not retained,
+                historical=True,
+            )
+            lifted = (not retained and self._achieved(leg, "grasped")
+                      and geo["bottom_z"] >= source.surface_z+self.thresholds.lift_clearance_m)
             self._set(f"{leg.name}/lifted", lifted, historical=True)
             # Navigation is a diagnostic goal-region observation, not a
             # mandatory approach pose nor a claim of planner/IK feasibility.
@@ -176,14 +189,14 @@ class PassiveTransferEvaluator:
                         self.initial_source_goals.add(leg.name)
                     if which == "source":
                         prior = self.last_nav_inside.get(leg.name, False)
-                        if inside and not prior and f"{leg.name}/source_visit" in self.first and not self._achieved(leg, "assisted_grasp"):
+                        if inside and not prior and f"{leg.name}/source_visit" in self.first and not self._achieved(leg, "grasped"):
                             self.repositionings[leg.name] += 1
                         if inside:
                             self.first.setdefault(f"{leg.name}/source_visit", t)
                         self.last_nav_inside[leg.name] = inside
             # Object arriving over the receiving surface is admissible from
             # any base pose, not just the baseline's configured staging pose.
-            transported = (self._achieved(leg, "lifted") and retained and geo["contained"]
+            transported = (self._achieved(leg, "lifted") and not retained and geo["contained"]
                            and obj["position_xyz"][2] > support.surface_z)
             self._set(f"{leg.name}/transported", transported, historical=True)
             stable = (np.linalg.norm(obj["linear_velocity_xyz"]) <= self.thresholds.settled_linear_speed_m_s
@@ -191,17 +204,25 @@ class PassiveTransferEvaluator:
             candidate = geo["at_target"] and stable and not retained and self._achieved(leg, "transported")
             self.settling[leg.name] = self.settling.get(leg.name, 0.0)+self.dt if candidate else 0.0
             self._set(f"{leg.name}/placed", self.settling[leg.name]+1e-9 >= self.thresholds.settled_duration_s)
-            if self.previous is not None and self.previous["objects"][name]["retention_active"] and not retained:
+            previous_forces = None if self.previous is None else self.previous["objects"][name].get("fingertip_forces_n")
+            released_from_contact = bool(
+                previous_forces is not None
+                and min(previous_forces) >= leg.grasp.contact_force_n
+                and (forces is None or min(forces) < leg.grasp.contact_force_n)
+                and self._achieved(leg, "transported")
+            )
+            if released_from_contact:
                 height = max(0.0, geo["bottom_z"]-support.surface_z)
                 self.release_heights[leg.name].append(height)
                 self.events.append({"step": self.tick-1, "sim_time_s": t,
-                                    "predicate": f"{leg.name}/retention", "value": False,
-                                    "name": f"{leg.name}/RETENTION_RELEASED",
+                                    "predicate": f"{leg.name}/gripper_contact", "value": False,
+                                    "name": f"{leg.name}/PHYSICAL_RELEASE_OBSERVED",
                                     "info": f"clearance above destination plane: {height:.3f} m"})
         groups = {group: sum(float(self._achieved(leg, p)) for leg in self.scenario.legs for p in predicates)
                   / (len(self.scenario.legs)*len(predicates)) for group, predicates in self.GROUPS.items()}
         progress = sum(groups.values())/len(groups)
-        success = all(self._achieved(leg, "placed") for leg in self.scenario.legs)
+        success = (not self.retention_ever_active
+                   and all(self._achieved(leg, "placed") for leg in self.scenario.legs))
         if success and self.completion_first_s is None:
             self.completion_first_s = t
         for event in self.events[start_events:]:
@@ -226,8 +247,8 @@ class PassiveTransferEvaluator:
     def summary(self):
         handoffs = {}
         for label, upstream, downstream in (
-            ("navigation_to_manipulation", "navigation_source_reached", "assisted_grasp"),
-            ("grasp_to_transport", "assisted_grasp", "transported"),
+            ("navigation_to_manipulation", "navigation_source_reached", "grasped"),
+            ("grasp_to_transport", "grasped", "transported"),
             ("transport_to_place", "transported", "placed"),
         ):
             legs = {}
@@ -249,7 +270,7 @@ class PassiveTransferEvaluator:
                                "rate": numerator/denominator if denominator else None, "legs": legs}
         failures = []
         for leg in self.scenario.legs:
-            missing = next((p for p in ("assisted_grasp", "lifted", "transported", "placed") if not self._achieved(leg, p)), None)
+            missing = next((p for p in ("grasped", "lifted", "transported", "placed") if not self._achieved(leg, p)), None)
             if missing:
                 failures.append({"leg": leg.name, "first_unsatisfied_capability": missing,
                                  "interpretation": "observed missing outcome; physical root cause not inferred"})
@@ -277,11 +298,11 @@ class PassiveTransferEvaluator:
             "validity": {
                 "policy": "privileged_scripted_curobo_oracle", "perception": "not_evaluated_privileged_object_state",
                 "interaction_pose_feasibility": "not_instrumented; successful grasp is observed, not an IK certificate",
-                "retention_mode": "contact_verified_temporary_fixed_joint",
-                "grasp_stability_slip_drop_resistance": "not_valid_under_retention_assist",
-                "lift": "geometric clearance only; not grasp load-bearing quality",
+                "retention_mode": "forbidden; any activation invalidates task success",
+                "grasp_stability_slip_drop_resistance": "physical contact evaluated; object-to-tool slip proxy reported by the controller audit",
+                "lift": "unassisted physical-contact lift plus geometric clearance",
                 "collision_count": "not_instrumented_for_whole_body; unknown, not zero",
-                "path_reference": "none_available", "comparison": "same physics/retention configuration only",
+                "path_reference": "none_available", "comparison": "same simulator and task configuration only",
                 "diagnosis": "structured failure localization, not causal root-cause inference",
                 "timebase": "post-step control samples; sim time=tick*dt, video time=(tick-1)*dt",
             },

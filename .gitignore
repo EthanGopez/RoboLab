@@ -34,6 +34,8 @@ assets/third_party/
 cobot_moma_isaacsim/
 mujoco_cobot/
 robot_handoff_2026-07-30/
+trace_development_*/
+trace_pilot_*/
 
 # Documentation
 docs/superpowers/

@@ -28,7 +28,12 @@ from robolab.tasks.mobile_manipulation.xgrids2_lab_scenarios import (  # noqa: E
 
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--scenario", choices=list_xgrids2_scenarios(), required=True)
+parser.add_argument(
+    "--scenario",
+    choices=("can_dining_to_snack",),
+    default="can_dining_to_snack",
+    help="benchmark-eligible scenarios; other registered scenarios await unassisted migration",
+)
 parser.add_argument("--stage", choices=("pick", "carry", "place", "full"), default="full")
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument(
