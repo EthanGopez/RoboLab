@@ -2,60 +2,14 @@
 
 RoboLab uses a **server-client architecture**: your model runs as a standalone server process, and RoboLab connects to it through a lightweight inference client during evaluation.
 
-Each `policies/<policy>/` folder is one backend and contains:
+For writing your own inference client, see [Evaluating a New Policy](../docs/policy.md). For the full run CLI reference, see [Running Environments](../docs/environment_run.md#run-cli-reference).
 
-- `client.py` — the concrete `InferenceClient` subclass that speaks WebSocket / ZMQ / HTTP to a remote policy server.
-- `run.py` — the runner script. Defines policy-specific argparse flags, builds a `make_client(args)` closure, and calls `run_evaluation(args, policy="<name>", client_factory=make_client)`.
-- `__init__.py` — re-exports the client class.
-- `README.md` — server install, server launch, and run instructions for that backend.
+## Shipped policy clients
 
-## The `InferenceClient` contract
-
-All concrete clients inherit from the `InferenceClient` ABC in `robolab/eval/base_client.py`:
-
-```python
-from robolab.eval import InferenceClient
-
-class InferenceClient(ABC):
-    # Hooks subclasses must implement:
-    def _extract_observation(self, raw_obs, *, env_id=0) -> dict: ...
-    def _pack_request(self, extracted_obs, instruction) -> Any: ...
-    def _query_server(self, request) -> Any: ...
-    def _unpack_response(self, response) -> np.ndarray: ...
-    # Provided by the base: infer(), reset(), close(), chunking state.
-```
-
-Each `run.py` imports its client class directly and constructs it inline — there is no central registry or factory:
-
-```python
-from policies.pi0_family.client import Pi0DroidJointposClient
-
-client = Pi0DroidJointposClient(remote_host="localhost", remote_port=8000, policy_variant="pi05")
-```
-
-For writing your own inference client, see [Evaluating a New Policy](../docs/policy.md).
-
-## Common CLI Options
-
-For the full CLI reference, see [Running Environments](../docs/environment_run.md#run-cli-reference).
-Use `policies/<policy>/run.py`
-
-```bash
-# Run on all benchmark tasks headlessly
-uv run python policies/<policy>/run.py --headless
-
-# Run on a specific task
-uv run python policies/<policy>/run.py --task BananaInBowlTask
-
-# Run on a tag of tasks
-uv run python policies/<policy>/run.py --tag pick_place
-
-# Run multiple runs per task (total episodes = num_runs * num_envs)
-uv run python policies/<policy>/run.py --headless --num-runs 5 --num-envs 2
-
-# Resume a previous run
-uv run python policies/<policy>/run.py --headless --output-folder-name my_previous_run
-
-# Disable subtask checking (on by default)
-uv run python policies/<policy>/run.py --headless --disable-subtask
-```
+| Backend | Policy / model | References |
+|---------|----------------|------------|
+| [`pi0_family/`](pi0_family/README.md) | π0, π0-FAST, π0.5, PaliGemma, PaliGemma-FAST (select with `--policy`) | [Code](https://github.com/Physical-Intelligence/openpi), Papers: [π0](https://arxiv.org/abs/2410.24164), [FAST](https://arxiv.org/abs/2501.09747), [π0.5](https://arxiv.org/abs/2504.16054) |
+| [`cosmos3/`](cosmos3/README.md) | Cosmos3-Nano-Policy | [Website](https://huggingface.co/collections/nvidia/cosmos3), [Paper](https://research.nvidia.com/labs/cosmos-lab/cosmos3/technical-report.pdf) |
+| [`gr00t/`](gr00t/README.md) | GR00T N1.7 DROID / GR00T N1.6 DROID | [Website](https://developer.nvidia.com/isaac/gr00t), [Code](https://github.com/NVIDIA/Isaac-GR00T), [Paper](https://arxiv.org/abs/2503.14734) |
+| [`dreamzero/`](dreamzero/README.md) | DreamZero-DROID | [Code](https://github.com/dreamzero0/dreamzero), [Paper](https://arxiv.org/abs/2602.15922) |
+| [`volo/`](volo/README.md) | VoLoAgent | [Website](https://chicychen.github.io/VoLo/), [Code](https://github.com/NVlabs/RoboVoLo), [Paper](https://arxiv.org/abs/2606.07723) |

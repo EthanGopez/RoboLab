@@ -35,3 +35,4 @@ def test_common_eval_args_do_not_collide_with_app_launcher():
     assert "renderer" in dests
     assert "rendering_type" in dests
     assert "rendering_mode" in dests
+    assert "enable_gt_state" in dests

@@ -585,12 +585,41 @@ class WorldState:
     #########################################################
     # Contact
     #########################################################
+    def resolve_contact_bodies(self, body: str) -> list[str]:
+        """Resolve a body name through the robot's ``contact_gripper`` declaration.
+
+        A list-valued entry is an alias group meaning "any member" — e.g. a
+        bimanual robot declares ``"gripper": ["left", "right"]`` so benchmark
+        tasks' generic "gripper" checks count either hand. Group members are
+        validated to be concrete labels at sensor-creation time, so resolution
+        is a single lookup. Names without a group entry resolve to themselves.
+        """
+        target = (getattr(self.env.cfg, "contact_gripper", None) or {}).get(body)
+        if isinstance(target, (list, tuple)):
+            return list(target)
+        return [body]
+
     def in_contact(self, body1: str, body2: str, force_threshold: float = 0.1, env_id: int | None = None):
         """Check if two bodies are in contact.
+
+        Either name may be a ``contact_gripper`` alias group, in which case
+        contact with any member counts (results are OR-ed across members).
 
         Args:
             env_id: None → Tensor(num_envs,) bool, int → bool
         """
+        pairs = [
+            (b1, b2)
+            for b1 in self.resolve_contact_bodies(body1)
+            for b2 in self.resolve_contact_bodies(body2)
+        ]
+        if env_id is not None:
+            return any(self._in_contact_pair(b1, b2, force_threshold, env_id) for b1, b2 in pairs)
+        results = [self._in_contact_pair(b1, b2, force_threshold, env_id) for b1, b2 in pairs]
+        return torch.stack(results, dim=0).any(dim=0)  # (N,)
+
+    def _in_contact_pair(self, body1: str, body2: str, force_threshold: float, env_id: int | None):
+        """Contact check for one concrete sensor pair (no alias resolution)."""
         contact_sensor = get_contact_sensor(self.env.scene, body1, body2)
         if env_id is not None:
             force_matrix = contact_sensor.data.force_matrix_w[env_id]
@@ -621,10 +650,23 @@ class WorldState:
 
         Note: This returns a list of object names and is inherently per-env.
         When env_id=None, defaults to env_id=0 for backward compat.
+
+        ``body`` may be a ``contact_gripper`` alias group; candidates in
+        contact with any member are returned.
         """
         if env_id is None:
             env_id = 0
 
+        members = self.resolve_contact_bodies(body)
+        if len(members) > 1:
+            in_contact_any = set()
+            for member in members:
+                in_contact_any.update(
+                    self.get_objects_in_contact_with(member, candidates, force_threshold, env_id=env_id)
+                )
+            return [obj for obj in candidates if obj in in_contact_any]
+
+        body = members[0]
         batch_sensor = get_batch_contact_sensor(self.env.scene, body)
 
         if batch_sensor is None:

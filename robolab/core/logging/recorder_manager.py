@@ -150,6 +150,17 @@ class RobolabRecorderManager(RecorderManager):
 
         self.initialized = True
 
+    def get_term(self, term_type: type) -> object | None:
+        """Return the first active recorder term of the given type, or None.
+
+        Public accessor so callers (e.g. the GT-state exporter) don't have to
+        reach into the private ``_terms`` dict.
+        """
+        for term in self._terms.values():
+            if isinstance(term, term_type):
+                return term
+        return None
+
     def set_flush_interval(self, interval: int, verbose: bool = False):
         """Set the automatic flush interval.
 

@@ -79,6 +79,8 @@ def add_common_eval_args(parser: argparse.ArgumentParser) -> None:
                         action="store_false",
                         help="Disable subtask progress checking (episode results will "
                              "have no score/reason and an empty events log).")
+    parser.add_argument("--enable-gt-state", "--enable_gt_state", action="store_true",
+                        help="Export simulator ground-truth state to the policy client.")
     parser.add_argument("--output-folder-name", "--output_folder_name", type=str, default=None,
                         help=("Output folder name under <repo>/output. Default is "
                               "<timestamp>_<policy>. If you provide the output folder name "
@@ -260,6 +262,7 @@ def run_evaluation(
                 save_videos=save_videos,
                 video_mode=args.video_mode,
                 headless=args.headless,
+                enable_gt_state=args.enable_gt_state,
             )
 
             episode_results = summarize_run(

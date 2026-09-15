@@ -4,13 +4,31 @@
 
 RoboLab is a research project developed and maintained by the [Seattle Robotics Lab (SRL)](https://research.nvidia.com/labs/srl/) at NVIDIA Research, with contributions from across NVIDIA.
 
-NVIDIA contributors: Xuning Yang, Rishit Dagli, Jonathan Tremblay, Yu-Wei Chao, Alperen Degirmenci, Liang Hao, Fabio Ramos, Alex Zook, Siyi Chen, Renato Gasoto, Xiaotong Chen.
+NVIDIA contributors: Xuning Yang, Rishit Dagli, Jonathan Tremblay, Yu-Wei Chao, Alperen Degirmenci, Liang Hao, Fabio Ramos, Alex Zook, Siyi Chen, Renato Gasoto, Xiaotong Chen, Valts Blukis, Shun Zhang.
 
 We thank the following additional contributors for their help in building RoboLab: Arhan Jain, Karl Pertsch.
 
 
 ## How to contribute
 If you encounter issues or have suggestions, please open an [Issue](https://github.com/NVlabs/RoboLab/issues) in this repository.
+
+### What PRs we accept
+
+We welcome:
+
+- **New assets** — objects, scenes, tasks, robots, and variations, following the per-type instructions below.
+- **Bug fixes** — with a description of the problem and how to reproduce it.
+- **Documentation** — fixes and improvements.
+
+**New policy backends** (a client + runner under `policies/<name>/`) must be backed by a published paper or public project, and require reaching out to the maintainers **before** submitting a PR — open an [Issue](https://github.com/NVlabs/RoboLab/issues) with the paper or project reference and we will follow up.
+
+Please open an Issue to discuss **before** starting work on:
+
+- Changes to the core framework (`robolab/core/`).
+- Changes to existing robots, tasks, or scenes that would alter benchmark results.
+- Dependency or simulator-stack changes.
+
+We cannot accept: commits without DCO sign-off, assets without a license, or new Python files without the standard SPDX header (Apache-2.0 — copy it from any existing file).
 
 ### PRs
 1. Fork the repository and create your branch from main.

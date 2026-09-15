@@ -29,3 +29,12 @@ binary gripper action to the six signed joint targets in
 The actuator gains are initial simulation defaults, not measured gains from a
 physical robot. The asset is a functional simulation model, not yet a
 calibrated digital twin.
+
+## RoboLab modifications
+
+Changes authored by RoboLab on top of the converted asset, in
+`configuration/kinova_gen3_7dof_robotiq_2f85_physics.usd`:
+
+- `GripperPhysicsMaterial` (static 2.0, dynamic 2.0, restitution 0.0), bound to
+  the four `robotiq_85_*_finger*_link` prims. The conversion shipped no physics
+  material, so the gripper pads fell back to the PhysX default of 0.5.

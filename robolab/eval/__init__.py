@@ -21,10 +21,12 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .base_client import InferenceClient
     from .episode import run_episode
+    from .gt_state import GroundTruthStateExporter
     from .runner import add_common_eval_args, run_evaluation
     from .summarize import summarize_run
 
 __all__ = [
+    "GroundTruthStateExporter",
     "InferenceClient",
     "add_common_eval_args",
     "run_episode",
@@ -38,6 +40,10 @@ def __getattr__(name: str):
         from .base_client import InferenceClient
 
         return InferenceClient
+    if name == "GroundTruthStateExporter":
+        from .gt_state import GroundTruthStateExporter
+
+        return GroundTruthStateExporter
     if name == "run_episode":
         from .episode import run_episode
 

@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from collections.abc import Sequence
+from dataclasses import MISSING
 
 import torch
 from isaaclab.managers.recorder_manager import RecorderTerm, RecorderTermCfg
 from isaaclab.sensors import Camera
 from isaaclab.utils import configclass
+from isaaclab.utils.math import subtract_frame_transforms
 
 ########################################################################################
 # Recorder terms. Adapted from isaaclab.envs.mdp.recorders.recorders.
@@ -111,15 +113,16 @@ class PostStepEndEffectorPoseRecorder(RecorderTerm):
     Records position, orientation (quaternion), linear velocity, and angular velocity
     for the specified end effector body.
 
-    Position is recorded in the env-local frame (relative to each env's scene origin),
-    matching the ``ee_pos`` observation term. Orientation and velocities are unaffected
-    by the per-env origin (a static translation offset) and remain in the world frame.
+    Position and orientation are recorded in the robot-root frame (relative to the
+    articulation's root link), matching the ``ee_pos``/``ee_quat`` observation terms
+    (see docs/frames.md). Velocities remain on world axes.
     """
 
     def __init__(self, cfg: "PostStepEndEffectorPoseRecorderCfg", env):
         super().__init__(cfg, env)
         self._robot_cfg_name = cfg.robot_cfg_name
         self._ee_body_name = cfg.ee_body_name
+        self._record_key = cfg.record_key
         self._robot = None
         self._ee_body_idx = None
         self._initialized = False
@@ -149,21 +152,61 @@ class PostStepEndEffectorPoseRecorder(RecorderTerm):
             return None, None
 
         # Get body pose from articulation (already computed by physics, no extra cost)
-        # Shift position into the env-local frame so multi-env recordings are comparable
-        # (matches the ee_pos observation term). env_origins is (num_envs, 3).
-        ee_pos = self._robot.data.body_pos_w[:, self._ee_body_idx, :]  # (num_envs, 3), world frame
-        ee_pos = ee_pos - self._env.scene.env_origins[:, 0:3]  # (num_envs, 3), env-local frame
-        ee_quat = self._robot.data.body_quat_w[:, self._ee_body_idx, :]  # (num_envs, 4)
+        # and express it in the robot-root frame (docs/frames.md). For robots whose
+        # root sits at the env origin with identity rotation (Franka family) this is
+        # numerically identical to the old env-local recording.
+        ee_pos, ee_quat = subtract_frame_transforms(
+            self._robot.data.root_pos_w,
+            self._robot.data.root_quat_w,
+            self._robot.data.body_pos_w[:, self._ee_body_idx, :],
+            self._robot.data.body_quat_w[:, self._ee_body_idx, :],
+        )  # (num_envs, 3), (num_envs, 4)
 
         # Get body velocity from articulation
         ee_lin_vel = self._robot.data.body_lin_vel_w[:, self._ee_body_idx, :]  # (num_envs, 3)
         ee_ang_vel = self._robot.data.body_ang_vel_w[:, self._ee_body_idx, :]  # (num_envs, 3)
 
-        return "ee_pose", {
+        return self._record_key, {
             "position": ee_pos,
             "orientation": ee_quat,
             "linear_velocity": ee_lin_vel,
             "angular_velocity": ee_ang_vel,
+        }
+
+
+class PostStepRobotRootPoseRecorder(RecorderTerm):
+    """Recorder term that records the robot root pose at the end of each step.
+
+    Position is recorded in the env-local frame (root world position minus each
+    env's scene origin); orientation is the root quaternion (w, x, y, z), which
+    the per-env origin does not affect. This is the bridge channel between
+    env-local and robot-root quantities (see docs/frames.md): consumers must
+    read it instead of assuming the root sits at the env origin, which holds
+    for Franka-family robots but not for floor-standing embodiments.
+    """
+
+    def __init__(self, cfg: "PostStepRobotRootPoseRecorderCfg", env):
+        super().__init__(cfg, env)
+        self._robot_cfg_name = cfg.robot_cfg_name
+        self._robot = None
+        self._initialized = False
+
+    def record_post_step(self):
+        if not self._initialized:
+            self._initialized = True
+            if self._robot_cfg_name in self._env.scene.articulations:
+                self._robot = self._env.scene[self._robot_cfg_name]
+            else:
+                print(f"[PostStepRobotRootPoseRecorder] Robot '{self._robot_cfg_name}' not found in scene.")
+
+        if self._robot is None:
+            return None, None
+
+        root_pos = self._robot.data.root_pos_w - self._env.scene.env_origins[:, 0:3]  # (num_envs, 3), env-local
+        root_quat = self._robot.data.root_quat_w  # (num_envs, 4), (w, x, y, z)
+        return "robot_root_pose", {
+            "position": root_pos,
+            "orientation": root_quat,
         }
 
 
@@ -293,13 +336,27 @@ class PostStepEndEffectorPoseRecorderCfg(RecorderTermCfg):
 
     Attributes:
         robot_cfg_name: Name of the robot articulation in the scene. Default: "robot"
-        ee_body_name: Name of the end effector body to record. Default: "base_link"
-            (for DROID, this matches Gripper/Robotiq_2F_85/base_link)
+        ee_body_name: Name of the end effector body to record. Required; sourced
+            from the robot cfg's ``ee_recorder_bodies`` label (see docs/robots.md).
+        record_key: HDF5 channel name to record under (e.g. "ee_pose"). Required.
     """
 
     class_type: type[RecorderTerm] = PostStepEndEffectorPoseRecorder
     robot_cfg_name: str = "robot"
-    ee_body_name: str = "base_link"
+    ee_body_name: str = MISSING
+    record_key: str = MISSING
+
+
+@configclass
+class PostStepRobotRootPoseRecorderCfg(RecorderTermCfg):
+    """Configuration for the robot root pose recorder term.
+
+    Attributes:
+        robot_cfg_name: Name of the robot articulation in the scene. Default: "robot"
+    """
+
+    class_type: type[RecorderTerm] = PostStepRobotRootPoseRecorder
+    robot_cfg_name: str = "robot"
 
 
 @configclass

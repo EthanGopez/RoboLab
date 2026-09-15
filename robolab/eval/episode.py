@@ -58,7 +58,17 @@ from robolab.core.world.world_state import get_world
 from robolab.eval.base_client import InferenceClient
 
 
-def run_episode(env, env_cfg, episode, client: InferenceClient, *, headless=False, save_videos=True, video_mode="all"):
+def run_episode(
+    env,
+    env_cfg,
+    episode,
+    client: InferenceClient,
+    *,
+    headless=False,
+    save_videos=True,
+    video_mode="all",
+    enable_gt_state=False,
+):
     """Run a policy-controlled episode across all parallel envs.
 
     The policy client is constructed by the caller (typically a per-policy
@@ -74,6 +84,9 @@ def run_episode(env, env_cfg, episode, client: InferenceClient, *, headless=Fals
         headless: If True, don't display video
         save_videos: If True, save per-env episode videos
         video_mode: Which videos to save: 'all', 'viewport', 'sensor', or 'none'
+        enable_gt_state: Attach per-env ground-truth sim state to the obs dict
+            as ``obs["gt_state"] = {env_id: state}`` each step (see
+            ``robolab/eval/gt_state.py`` for the schema).
 
     Returns:
         tuple: (env_results, subtask_status, timing)
@@ -98,6 +111,8 @@ def run_episode(env, env_cfg, episode, client: InferenceClient, *, headless=Fals
 
     subtask_status = []
 
+    client.begin_episode(episode)
+
     # Set up per-run HDF5 file and per-env demo indices
     if env.recorder_manager is not None and hasattr(env.recorder_manager, 'set_hdf5_file'):
         env.recorder_manager.set_hdf5_file(f"run_{episode}.hdf5")
@@ -121,6 +136,15 @@ def run_episode(env, env_cfg, episode, client: InferenceClient, *, headless=Fals
                 video_path_viewport = os.path.join(get_output_dir(), f"{cleaned_instruction}{suffix}_viewport.mp4")
                 video_writers_viewport.append(VideoWriter(video_path_viewport, video_fps))
 
+    gt_exporter = None
+    if enable_gt_state:
+        try:
+            from robolab.eval.gt_state import GroundTruthStateExporter
+
+            gt_exporter = GroundTruthStateExporter(env, env_cfg)
+        except Exception:
+            logger.exception("Failed to initialize the GT-state exporter")
+
     import omni.kit.app
     import omni.timeline
     timeline = omni.timeline.get_timeline_interface()
@@ -132,6 +156,20 @@ def run_episode(env, env_cfg, episode, client: InferenceClient, *, headless=Fals
 
             while not timeline.is_playing():
                 kit_app.update()
+
+            # Attach per-env ground-truth state so clients that want privileged
+            # sim state can pick out their env's entry (see robolab/eval/gt_state.py).
+            if gt_exporter is not None:
+                try:
+                    obs["gt_state"] = gt_exporter.export_all(list(env.active_env_ids))
+                except Exception:
+                    logger.exception(
+                        "GT-state export failed at step %d; disabling it for the rest of the episode. "
+                        "Clients will stop receiving gt_state from this step on.", step,
+                    )
+                    gt_exporter = None
+                    # Drop the previous step's entry rather than forwarding stale state.
+                    obs.pop("gt_state", None)
 
             timer.start("policy_inference")
             # Infer actions for all active (non-frozen) envs in ONE call.

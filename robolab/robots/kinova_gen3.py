@@ -23,7 +23,6 @@ from isaaclab.utils import configclass
 from robolab.constants import ROBOTS_DIR
 from robolab.robots.droid import BinaryJointPositionZeroToOneActionCfg
 
-
 ARM_JOINT_NAMES = [f"joint_{index}" for index in range(1, 8)]
 GRIPPER_JOINT_NAME = "robotiq_85_left_knuckle_joint"
 GRIPPER_JOINT_COMMANDS = {
@@ -221,3 +220,9 @@ class KinovaProprioceptionObservationCfg(ObsGroup):
 contact_gripper = {
     "gripper": "{ENV_REGEX_NS}/robot/robotiq_85_.*_finger_tip_link",
 }
+
+# Class-level label, assigned after the class body so configclass does not turn
+# it into a config field. EE-pose recorder channels (HDF5 channel name -> EE
+# body name), consumed by create_recorder_config. The Kinova articulation root
+# is also named "base_link", so the gripper base must be named explicitly.
+KinovaGen3Cfg.ee_recorder_bodies = {"ee_pose": END_EFFECTOR_LINK_NAME}

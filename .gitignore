@@ -16,6 +16,7 @@ __pycache__
 debug/*
 !debug/scripts/
 !debug/scripts/**
+debug/scripts/__pycache__/
 !debug/container_hulls/
 !debug/container_hulls/**
 docker-cache/

@@ -45,6 +45,8 @@ The core concepts are:
 #### Debug
 - **[Debugging](debug.md)** — Verbose/debug flags, world state inspection, and diagnostic scripts
 - **[Known Issues](known_issues.md)** — Documented bugs and workarounds
+#### Ecosystem
+- **[Ecosystem](ecosystem.md)** — Task libraries and projects built on RoboLab
 
 
 ## Developing and Working with RoboLab

@@ -1,5 +1,66 @@
 # Changelog
 
+## [0.3.1] - 2026-08-11
+
+### Added
+
+- Kinova Gen3 (Robotiq 2F-85) fixed-base support: robot config, joint-position
+  environment registrations, and an example runner
+  (`examples/run_kinova_jointpos.py`).
+  ([#23](https://github.com/NVlabs/RoboLab/pull/23))
+- Floor-standing robot support: a robot config can declare the
+  `root_z_above_ground` label (the reach of its lowest colliders below the
+  root), and the environment factory places the root on each task scene's
+  authored ground plane plus that offset (`docs/robots.md`).
+- Per-scene ground-height lock (`tests/test_scene_ground.py`): the task table
+  is a dynamic rigid body resting on the ground plane, so the authored ground
+  height sets the tabletop height and is now locked per scene.
+
+### Changed
+
+- Every robot config must now declare the `ee_recorder_bodies` label mapping
+  HDF5 channel names to the articulation bodies recorded for end-effector
+  pose (`{}` opts out). **Breaking for custom robot configs**: environment
+  generation fails with a `ValueError` naming the config until the label is
+  added — see `docs/robots.md#end-effector-pose-recording`.
+- Remaining task-scene ground planes aligned to the canonical -0.697 height;
+  legacy scenes keep their original -0.65 ground to preserve replay
+  compatibility with existing recordings.
+
+## [0.3.0] - 2026-08-07
+
+### Added
+
+- Explicit coordinate-frame contract: end-effector observations are now
+  published in the robot-root frame, with a compatibility shim for older
+  recordings (`robolab/core/logging/frame_compat.py`) and a reference doc
+  (`docs/frames.md`).
+- Ground-truth state export during stepping: `--enable-gt-state` makes every
+  runner emit a raw per-env world-state snapshot each step under
+  `obs["gt_state"]` (`robolab.eval.GroundTruthStateExporter`; schema in
+  `docs/environment_run.md`).
+- VoLo policy backend (`policies/volo/`): a proxy wrapper over existing
+  clients that adds depth observations, camera calibration, and ground-truth
+  state metadata to the inference payload.
+- Robot-owned scene fixtures with per-robot fixture selection
+  (`robolab/core/environments/scene_fixture.py`): a robot config declares the
+  table fixture it is mounted on (or none, for robots with their own base),
+  and the environment factory swaps the task scene's default fixture
+  accordingly.
+- Multi-gripper support in the task conditional system: robots can declare
+  named gripper groups (e.g. `"gripper": ["left", "right"]` on a bimanual
+  robot), and success/failure predicates can target any member of a group or
+  require several grippers simultaneously (see `docs/task_conditionals.md`
+  and `docs/event_tracking.md`).
+- Pull request template and documentation of accepted PR types in
+  `CONTRIBUTING.md`.
+- News section in the README and an ecosystem page (`docs/ecosystem.md`).
+
+### Fixed
+
+- Explicitly-named tasks now resolve correctly from scoped content-pack
+  folders.
+
 ## [0.2.1] - 2026-07-20
 
 ### Added
@@ -76,6 +137,8 @@ Initial public release: 100+ benchmark tasks,
 DROID and Franka embodiments, server-client policy evaluation (Pi0 family,
 GR00T, DreamZero), and HDF5 episode recording with analysis tools.
 
+[0.3.1]: https://github.com/NVlabs/RoboLab/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/NVlabs/RoboLab/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/NVlabs/RoboLab/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/NVlabs/RoboLab/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/NVlabs/RoboLab/compare/v0.1.0...v0.1.1

@@ -32,6 +32,26 @@ For functions that support logicals, the available logicals are:
 - `all`: All objects need to satisfy the condition
 - `choose`: Given the set of `objects` with size `N`, exactly `K` objects must satisfy the condition.
 
+### Gripper names
+
+Contact-based conditionals take a `gripper_name` parameter (default `"gripper"`). Its value
+refers to the robot's `contact_gripper` declaration (see [Robots](robots.md#contact-gripper))
+and can be:
+
+- **A label** — that specific gripper: `"gripper_name": "left"`.
+- **A group name** — any member counts. On a bimanual robot, `"gripper"` is declared as
+  `["left", "right"]`, so the default works unchanged for single-arm tasks: either hand
+  grabbing the object satisfies `object_grabbed`.
+- **A list of labels** — all of them at once (simultaneously, per env). A bimanual task
+  requiring both hands on the same object writes `"gripper_name": ["left", "right"]`. On a
+  dexterous hand this expresses an opposition grasp: `"gripper_name": ["thumb", "index"]`.
+
+**Detachment is always "touching none."** `require_gripper_detached=True` and
+`object_dropped` check that the object touches none of the given grippers, whatever form
+`gripper_name` takes. Negating the all-of-list check would mean "at least one gripper off",
+which is never a useful success criterion, so lists are not negated pairwise. Use the
+default `"gripper"` for release checks unless you have a reason not to.
+
 ### Function decorators
 
 #### Atomic Functions

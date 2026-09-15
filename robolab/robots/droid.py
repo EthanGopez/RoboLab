@@ -24,8 +24,10 @@ from isaaclab.markers.config import FRAME_MARKER_CFG
 from isaaclab.sensors import TiledCameraCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransformerCfg, OffsetCfg
 from isaaclab.utils import configclass, noise
+from isaaclab.utils.math import subtract_frame_transforms
 
 from robolab.constants import ROBOTS_DIR
+from robolab.core.environments.scene_fixture import FRANKA_TABLE_FIXTURE
 
 # Offset of the end-effector control frame relative to base_link. Used by:
 #   - DroidCfg.frames "eef_frame" (FrameTransformer publishes this pose for downstream code)
@@ -155,6 +157,16 @@ class DroidCfg:
     )
 
 
+# Class-level label, assigned after the class body so configclass does not turn
+# it into a config field. Robots may instead declare their own TableFixtureCfg
+# here (custom USD + pose). See docs/robots.md#table-fixture.
+DroidCfg.table_fixture = FRANKA_TABLE_FIXTURE
+# EE-pose recorder channels (HDF5 channel name -> EE body name), consumed by
+# create_recorder_config. "base_link" is the Robotiq 2F-85 gripper base
+# (Gripper/Robotiq_2F_85/base_link).
+DroidCfg.ee_recorder_bodies = {"ee_pose": "base_link"}
+
+
 @configclass
 class WristCameraCfg:
     """Introspection wrapper so the wrist camera can be passed to generate_image_obs_from_cameras.
@@ -231,39 +243,61 @@ def gripper_pos(
 def ee_pos(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ):
-    """Returns the end effector position (x, y, z) in the env-local frame."""
+    """Returns the end effector position (x, y, z) in the robot-root frame (see docs/frames.md)."""
     robot = env.scene[asset_cfg.name]
     # Get the body index for the end effector link
     ee_body_name = "base_link"  # Robotiq gripper base link
     body_idx = robot.data.body_names.index(ee_body_name)
     # Return position (shape: [num_envs, 3])
-    return _to_torch(robot.data.body_pos_w)[:, body_idx, :] - env.scene.env_origins[:, 0:3]
+    pos, _ = subtract_frame_transforms(
+        _to_torch(robot.data.root_pos_w),
+        _to_torch(robot.data.root_quat_w),
+        _to_torch(robot.data.body_pos_w)[:, body_idx, :],
+    )
+    return pos
 
 
 def ee_quat(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ):
-    """Returns the end effector orientation as quaternion (w, x, y, z) in the world frame."""
+    """Returns the end effector orientation as quaternion (w, x, y, z) in the robot-root frame."""
     robot = env.scene[asset_cfg.name]
     # Get the body index for the end effector link
     ee_body_name = "base_link"  # Robotiq gripper base link
     body_idx = robot.data.body_names.index(ee_body_name)
     # Return quaternion (shape: [num_envs, 4])
-    return _to_torch(robot.data.body_quat_w)[:, body_idx, :]
+    _, quat = subtract_frame_transforms(
+        _to_torch(robot.data.root_pos_w),
+        _to_torch(robot.data.root_quat_w),
+        q02=_to_torch(robot.data.body_quat_w)[:, body_idx, :],
+    )
+    return quat
 
 
 def eef_pos(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("frames")):
-    """Returns the eef_frame position (x, y, z) in the env-local frame."""
+    """Returns the eef_frame position (x, y, z) in the robot-root frame (see docs/frames.md)."""
     frames = env.scene[asset_cfg.name]
+    robot = env.scene["robot"]
     idx = frames.data.target_frame_names.index("eef_frame")
-    return _to_torch(frames.data.target_pos_w)[:, idx, :] - env.scene.env_origins[:, 0:3]
+    pos, _ = subtract_frame_transforms(
+        _to_torch(robot.data.root_pos_w),
+        _to_torch(robot.data.root_quat_w),
+        _to_torch(frames.data.target_pos_w)[:, idx, :],
+    )
+    return pos
 
 
 def eef_quat(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("frames")):
-    """Returns the eef_frame orientation as quaternion (w, x, y, z) in the world frame."""
+    """Returns the eef_frame orientation as quaternion (w, x, y, z) in the robot-root frame."""
     frames = env.scene[asset_cfg.name]
+    robot = env.scene["robot"]
     idx = frames.data.target_frame_names.index("eef_frame")
-    return _to_torch(frames.data.target_quat_w)[:, idx, :]
+    _, quat = subtract_frame_transforms(
+        _to_torch(robot.data.root_pos_w),
+        _to_torch(robot.data.root_quat_w),
+        q02=_to_torch(frames.data.target_quat_w)[:, idx, :],
+    )
+    return quat
 
 ########################################################
 # Actions
@@ -303,6 +337,7 @@ class BinaryJointPositionZeroToOneActionCfg(BinaryJointPositionActionCfg):
     class_type = BinaryJointPositionZeroToOneAction
 @configclass
 class DroidJointPositionActionCfg:
+    """Joint-space arm + gripper actions; no Cartesian frame (see docs/frames.md)."""
     body = mdp.JointPositionActionCfg(
         asset_name="robot",
         joint_names=["panda_joint.*"],
@@ -322,6 +357,7 @@ class DroidJointPositionActionCfg:
 class DroidIKActionCfg:
     """Absolute end-effector pose control via differential IK.
 
+    Cartesian targets are in the robot-root frame (see docs/frames.md).
     Tracks base_link directly (no body_offset rotation). If a policy wants to
     command poses in eef_frame's coordinates, it must convert before sending:
     target_base_quat = target_eef_quat ⊗ R_eef_in_base⁻¹. We don't use
@@ -360,6 +396,8 @@ class DroidIKActionCfg:
 @configclass
 class DroidRelIKActionCfg:
     """Relative end-effector pose control via differential IK.
+
+    Cartesian deltas are on robot-root axes (see docs/frames.md).
 
     Note:
         if self.cfg.command_type == "position", action_dim = 3, (x, y, z)

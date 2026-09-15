@@ -4,7 +4,7 @@
 
 - Docker with NVIDIA Container Toolkit (`nvidia-docker2`)
 - Access to `nvcr.io/nvidia/isaac-lab:2.2.0` (base image; use `:2.3.0` for the IsaacSim 5.1 / IsaacLab 2.3 stack)
-- (Optional, for `--push`) A container registry to push the built image to; set `ROBOLAB_REGISTRY` to your registry path (default image name: `robolab`).
+- To push the built image, a container registry of your own (set `ROBOLAB_REGISTRY` to its image path prefix)
 
 ## Build
 
@@ -35,6 +35,7 @@ separate layer for better caching — code changes don't invalidate asset layers
 
 # Or specify a custom tag
 ./docker/run_docker.sh my-tag
+
 ```
 
 ### Running a single command

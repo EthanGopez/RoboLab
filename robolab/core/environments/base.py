@@ -21,6 +21,7 @@ from robolab.core.events.basic_recorders import (
     InitialStateRecorderCfg,
     PostStepBBoxRecorderCfg,
     PostStepEndEffectorPoseRecorderCfg,
+    PostStepRobotRootPoseRecorderCfg,
     PostStepStatesRecorderCfg,
     PreStepActionsRecorderCfg,
     PreStepFlatPolicyObservationsRecorderCfg,
@@ -52,7 +53,9 @@ class BaseRecorderManagerCfg(RecorderManagerBaseCfg):
     record_initial_state: InitialStateRecorderCfg = InitialStateRecorderCfg()
     record_states: PostStepStatesRecorderCfg = PostStepStatesRecorderCfg()
     record_actions: PreStepActionsRecorderCfg = PreStepActionsRecorderCfg()
-    record_ee_pose: PostStepEndEffectorPoseRecorderCfg = PostStepEndEffectorPoseRecorderCfg()
+    # EE-pose channels are attached dynamically by create_recorder_config from
+    # the robot cfg's mandatory ee_recorder_bodies label (one term per channel).
+    record_robot_root_pose: PostStepRobotRootPoseRecorderCfg = PostStepRobotRootPoseRecorderCfg()
     record_bbox: PostStepBBoxRecorderCfg = PostStepBBoxRecorderCfg()
     record_policy_observations: PreStepFlatPolicyObservationsRecorderCfg | None = None
     record_subtask_completion: SubtaskCompletionRecorderCfg | None = None
@@ -62,7 +65,8 @@ def create_recorder_config(
     include_policy_observations: bool = False,
     include_subtask_tracking: bool = False,
     export_dir: str | None = None,
-    filename: str = "data.hdf5"
+    filename: str = "data.hdf5",
+    ee_recorder_bodies: dict[str, str] | None = None,
 ) -> RecorderManagerBaseCfg:
     """Factory function to create appropriate recorder configuration.
 
@@ -71,16 +75,36 @@ def create_recorder_config(
         include_subtask_tracking: Whether to track subtask completion
         export_dir: Directory to export data to
         filename: Name of the output file
+        ee_recorder_bodies: Mapping of HDF5 channel name -> EE body name, one
+            recorder term per entry. Required; sourced from the robot cfg's
+            ``ee_recorder_bodies`` label. Pass ``{}`` to disable EE-pose recording.
 
     Returns:
         Configured RecorderManagerBaseCfg instance
     """
+    # No fallback: every robot cfg must declare its EE bodies explicitly.
+    if ee_recorder_bodies is None:
+        raise ValueError(
+            "ee_recorder_bodies is required. Declare the label on the robot cfg, "
+            "e.g. DroidCfg.ee_recorder_bodies = {'ee_pose': 'base_link'}; use {} "
+            "to disable EE-pose recording. See docs/robots.md."
+        )
+
     # Create base config
     config = BaseRecorderManagerCfg(
         export_in_record_pre_reset=False,
         dataset_export_dir_path=export_dir,
         dataset_filename=filename
     )
+
+    # One EE-pose recorder per channel. RecorderManager._prepare_terms iterates
+    # the cfg instance __dict__, so setattr-attached terms are instantiated.
+    for record_key, ee_body_name in ee_recorder_bodies.items():
+        setattr(
+            config,
+            f"record_{record_key}",
+            PostStepEndEffectorPoseRecorderCfg(record_key=record_key, ee_body_name=ee_body_name),
+        )
 
     # Conditionally add policy observations
     if include_policy_observations:
@@ -121,6 +145,10 @@ class RobolabDefaultEnvCfg(ManagerBasedRLEnvCfg):
     rerender_on_reset: bool = True
     seed: int | None = 0
     subtasks: list[dict[str, dict]] | None = None
+    # Set from the robot cfg's mandatory ee_recorder_bodies label (HDF5 channel
+    # name -> EE body name). No default; env generation fails if the robot cfg
+    # omits the label. See docs/robots.md.
+    ee_recorder_bodies: dict[str, str] | None = None
 
     def __post_init__(self):
         if self.observations is None:
@@ -149,7 +177,8 @@ class RobolabDefaultEnvCfg(ManagerBasedRLEnvCfg):
                 include_policy_observations=enable_policy_observations,
                 include_subtask_tracking=enable_subtask_tracking,
                 export_dir=get_output_dir(),
-                filename="data.hdf5"
+                filename="data.hdf5",
+                ee_recorder_bodies=self.ee_recorder_bodies,
             )
 
         self.viewer.cam_prim_path = "/OmniverseKit_Persp"

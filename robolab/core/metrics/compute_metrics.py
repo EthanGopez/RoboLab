@@ -71,7 +71,10 @@ def load_demo_data(hdf5_path: str, demo_key: str = "demo_0") -> dict | None:
             data["joint_position"] = robot_state["joint_position"][:]
             data["joint_velocity"] = robot_state["joint_velocity"][:]
 
-            # Load end-effector pose
+            # Load end-effector pose (robot-root frame, docs/frames.md). Every metric
+            # computed from these is difference-based (smoothness, path length,
+            # velocity), so the constant root offset cancels and no frame conversion
+            # is needed here.
             data["ee_position"] = demo["ee_pose"]["position"][:]
             data["ee_orientation"] = demo["ee_pose"]["orientation"][:]
 

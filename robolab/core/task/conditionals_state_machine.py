@@ -4,6 +4,8 @@
 from dataclasses import dataclass
 from typing import Any, Callable
 
+import torch
+
 import robolab.constants
 from robolab.core.task.status import StatusCode
 from robolab.core.task.subtask import Subtask
@@ -130,6 +132,11 @@ class ConditionalsStateMachine:
         # Add environment parameters and evaluate
         params_with_env = {'env': self.env, 'env_id': self.env_id}
         result = conditional_func(**params_with_env)
+
+        # A state machine tracks one env. Be defensive when a custom task
+        # conditional accidentally returns a vectorized result.
+        if isinstance(result, torch.Tensor):
+            result = bool(result[self.env_id] if result.ndim > 0 else result)
 
         # Create info string only once per condition per step
         succ_fail = "success" if result else "failed"
