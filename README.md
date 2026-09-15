@@ -33,6 +33,23 @@ commands, benchmark scope, validation, and current limitations.
 The current scored scope and migration status are summarized in
 **[XGrids2 benchmark contract](docs/XGRIDS2_BENCHMARK.md)**.
 
+The currently validated benchmark task is `can_dining_to_snack`. It uses the
+stock RoboLab YCB can and unassisted physical fingertip contact throughout
+grasp, transport, and release; enabling fixed-joint retention invalidates the
+result. The other registered XGrids2 scenarios remain development-only until
+their manipulation controllers are migrated and independently validated.
+
+The Nucleus4D reconstruction is external data and is not distributed in this
+repository. After placing it at the path documented in the extension README,
+install and validate the extension with:
+
+```bash
+uv sync --extra isaac51 --extra xgrids2
+python examples/check_xgrids2_setup.py --verify-checksum
+python examples/validate_xgrids2_lab_scenario.py \
+  --scenario can_dining_to_snack --stage full --seed 0 --headless
+```
+
 See the [Ecosystem](docs/ecosystem.md) page for projects built on RoboLab.
 
 ## Getting Started
